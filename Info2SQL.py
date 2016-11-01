@@ -27,7 +27,7 @@ discard_lists = ['Depo','tkn','gvn','Tkn','Gvn','Shibor','.'] # 凡是在这个l
 def  getdata_XYZ(x): #此函数用于对一行信用债的信息进行解析提取数据,'x'代表'line'
     tmp = ['0']*5 #初始化一个列表
     ytm_type = '0'        
-	#下面开始依据字符匹配将各类数据归类
+    #下面开始依据字符匹配将各类数据归类
     for u in x:
         #sg = u.encode("utf-8") #先统一为utf-8编码   
         if u in discard_lists:
@@ -58,7 +58,7 @@ def  getdata_XYZ(x): #此函数用于对一行信用债的信息进行解析提�
             tmp[0] = sg #债券代码
     if ytm_type != '0':
         tmp[4] = tmp[4] + ytm_type
-	#tmp = [ yy.encode("utf-8") for yy in tmp]
+    #tmp = [ yy.encode("utf-8") for yy in tmp]
     return tmp
 
 def name_detect(true_name,to_test):#此函数用来检测交易记录中的债券简称和万得中的债券简称匹配度
@@ -72,7 +72,7 @@ def name_detect(true_name,to_test):#此函数用来检测交易记录中的债�
             count += 1            
     return count
 
-def code_detect(raw_code,true_name,tr_date):#此函数用来找寻正确的债券代码
+def code_detect(raw_code,true_name,tr_date):#此函数用于寻找正确的债券代码（按与名字匹配度）
     global wind_count
     code_tails = ['.IB','.SH','.SZ']
     count_mark = 0
@@ -81,7 +81,6 @@ def code_detect(raw_code,true_name,tr_date):#此函数用来找寻正确的债�
     for tail in code_tails:
         tmp_code = raw_code + tail
         wind_dat = w.wss(tmp_code, "sec_name,windl1type,windl2type,municipalbond,termifexercise,ptmyear","tradeDate=%s"%tr_date).Data
-        print(wind_dat)        
         wind_count += 1
         if wind_dat[0][0] != None:
             count_tmp = name_detect(true_name,wind_dat[0][0])
@@ -104,7 +103,7 @@ def collect_line(f, tr_date) :#此函数用于逐行传入原始数据并生成�
         line_count += 1
         if line == '\n' : #如果是空行跳过
             pass 
-        else :	#不是空行则进行解析提取数据
+        else :  #不是空行则进行解析提取数据
             match_num = numPattern.search(line)
             x = line.split()
             if match_num and len(x) >= 2: #确定该行含有有用数据（有数字且数据量>2)
@@ -151,25 +150,25 @@ def collect_line(f, tr_date) :#此函数用于逐行传入原始数据并生成�
     return lie
 
 def getytm(s): #此程序用于将字符串形式、格式混乱的ytm统一成浮点数形式
-	ytm_s = '' #ytm的数值
-	type_s = '' #含权情况下ytm的类型：行权/到期
-	paren_sign = 0
-	for x in s:
-		if x == '(' or x == '（':
-			paren_sign = 1 #遇到括号，之后的数字就不处理了
-		if (paren_sign == 0) and (x.isdigit() or x == '.') :
-			ytm_s += x
-		match = zhPattern.search(x)
-		if match :
-			if (x == '行' or x == '权'or x == '到' or x == '期') :
-				type_s += x
-		ytm_num = float(ytm_s)
-	ytm_s = '%.4f%%'%(ytm_num) #用来将ytm转成百分形式输出
-	return ytm_s,type_s  #多变量输出是元组形式
+    ytm_s = '' #ytm的数值
+    type_s = '' #含权情况下ytm的类型：行权/到期
+    paren_sign = 0
+    for x in s:
+        if x == '(' or x == '（':
+            paren_sign = 1 #遇到括号，之后的数字就不处理了
+        if (paren_sign == 0) and (x.isdigit() or x == '.') :
+            ytm_s += x
+        match = zhPattern.search(x)
+        if match :
+            if (x == '行' or x == '权'or x == '到' or x == '期') :
+                type_s += x
+        ytm_num = float(ytm_s)
+    ytm_s = '%.4f%%'%(ytm_num) #用来将ytm转成百分形式输出
+    return ytm_s,type_s  #多变量输出是元组形式
 
 
 now = datetime.now()
-yes = now - timedelta(hours = 48)
+yes = now - timedelta(hours = 0)
 yesterday = yes.strftime("%y,%m,%d") # 昨天即交易日的时间
 
 td = yes
@@ -210,11 +209,8 @@ while 1:
         cols.remove('trading_date')
         cols.append('trading_date')
         bond_DF = bond_DF[cols]
-
-            
-            
-            
-        #bond_DF.to_sql('bonddaily_plus',conn,flavor='mysql',if_exists = 'append', index = False)
+                                  
+        bond_DF.to_sql('bonddaily_plus',conn,flavor='mysql',if_exists = 'append', index = False)
         td = td - timedelta(hours = 24)
         file.close()
     except IOError :
@@ -224,4 +220,4 @@ while 1:
 conn.close()
 
 
-			
+            

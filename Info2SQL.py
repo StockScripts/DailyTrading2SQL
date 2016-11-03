@@ -22,44 +22,82 @@ zhPattern = re.compile(u'[\u4e00-\u9fa5]+') #用来判断一段文本中是否�
 numPattern = re.compile('[0-9]') #判断是否包含数字
 ytm_types = ['行权','到期','永续','新发','repo']
 discard_lists = ['Depo','tkn','gvn','Tkn','Gvn','Shibor','.'] # 凡是在这个list里面的元素都是无用信息，弃之
+replace_lists = ['?'] #凡是信息包含这个list里的元素就把该元素去掉
 
-
-def  getdata_XYZ(x): #此函数用于对一行信用债的信息进行解析提取数据,'x'代表'line'
+def  getdata_XYZ(x): #新的，参考位置的信息判断提取函数 @161103
     tmp = ['0']*5 #初始化一个列表
-    ytm_type = '0'        
-    #下面开始依据字符匹配将各类数据归类
-    for u in x:
-        #sg = u.encode("utf-8") #先统一为utf-8编码   
-        if u in discard_lists:
-            continue
-        sg = u
-        match = zhPattern.search(sg)
-        if match :
-            if sg.find('.') == -1:#含有中文且没点的可能为债券名称
-                name_check = 0
-                for tmp_type in ytm_types:#去排除列表里面排除一下，以防是’行权‘之类的字段
-                    if sg.find(tmp_type) != -1 :
-                        ytm_type = tmp_type#如果是行权之类的字段，就加到ytm_type里
-                        name_check = 1
-                        break
-                if name_check == 0:
-                    tmp[1] = sg #中文债券名称
-            elif sg.find('上市') != -1 :
-                tmp[0] = sg #带有上市的代码
-            else :
-                tmp[4] = sg #YTM
-        elif ( sg.find('D') != -1 or sg.find('M') != -1 or sg.find('Y') != -1 or sg.find('d') != -1 or sg.find('m') != -1 or sg.find('y') != -1) :
-            tmp[2] = sg #期限
-        elif sg.find('.') != -1 and (sg.find('I') == -1 and sg.find('i') == -1 and sg.find('S') == -1 and sg.find('s') == -1 ) :
-            tmp[4] = sg #YTM
-        elif sg.find('A') != -1 :
-            tmp[3] = sg #评级
-        else :
-            tmp[0] = sg #债券代码
-    if ytm_type != '0':
-        tmp[4] = tmp[4] + ytm_type
-    #tmp = [ yy.encode("utf-8") for yy in tmp]
+    ytm_type = '0'
+    useful_count = 0 
+    useful_dict = {1:2,2:0,3:4} #用来对应到tmp顺序的词典
+    if len(x) <= 4 :#如果少于4个信息，按利率债处理
+        for u in x :
+            if u in discard_lists:
+                continue
+            useful_count += 1
+            tmp[useful_dict[useful_count]] = u
+    else : #多于4个信息就按信用债提取数据
+        for u in x :
+            if u in discard_lists:
+                continue
+            if u in ytm_types:
+                ytm_type = u
+                continue              
+            useful_count += 1
+            if useful_count == 1:#第一个出现的是期限
+                tmp[2] = u
+            elif useful_count in [2,3]:#2,3位出现的是债券代码或者名字
+                if u.isdigit() or u.find('.S') != -1 or u.find('.s') != -1 :
+                    tmp[0] = u #债券代码
+                else :
+                    tmp[1] = u #债券名字
+            elif useful_count in [4,5]:#4,5位出现的是评级或者YTM
+                if u.find('A') != -1 or u.find('a') != -1 : #评级
+                    tmp[3] = u.replace('.','') #去掉有时误多出的'.'
+                else :
+                    tmp[4] = u #YTM
+        if ytm_type != '0':
+            tmp[4] = tmp[4] + ytm_type
+    
     return tmp
+                    
+            
+            
+#def  getdata_XYZ(x): #此函数用于对一行信用债的信息进行解析提取数据,'x'代表'line'
+#    tmp = ['0']*5 #初始化一个列表
+#    ytm_type = '0'        
+#   #下面开始依据字符匹配将各类数据归类
+#    for u in x:
+#        #sg = u.encode("utf-8") #先统一为utf-8编码   
+#        if u in discard_lists:
+#            continue
+#        sg = u
+#        match = zhPattern.search(sg)
+#        if match :
+#            if sg.find('.') == -1:#含有中文且没点的可能为债券名称
+#                name_check = 0
+#                for tmp_type in ytm_types:#去排除列表里面排除一下，以防是’行权‘之类的字段
+#                    if sg.find(tmp_type) != -1 :
+#                        ytm_type = tmp_type#如果是行权之类的字段，就加到ytm_type里
+#                        name_check = 1
+#                        break
+#                if name_check == 0:
+#                    tmp[1] = sg #中文债券名称
+#            elif sg.find('上市') != -1 :
+#                tmp[0] = sg #带有上市的代码
+#            else :
+#                tmp[4] = sg #YTM
+#        elif ( sg.find('D') != -1 or sg.find('M') != -1 or sg.find('Y') != -1 or sg.find('d') != -1 or sg.find('m') != -1 or sg.find('y') != -1) :
+#            tmp[2] = sg #期限
+#        elif sg.find('.') != -1 and (sg.find('I') == -1 and sg.find('i') == -1 and sg.find('S') == -1 and sg.find('s') == -1 ) :
+#            tmp[4] = sg #YTM
+#        elif sg.find('A') != -1 :
+#            tmp[3] = sg #评级
+#        else :
+#            tmp[0] = sg #债券代码
+#    if ytm_type != '0':
+#        tmp[4] = tmp[4] + ytm_type
+#   #tmp = [ yy.encode("utf-8") for yy in tmp]
+#    return tmp
 
 def name_detect(true_name,to_test):#此函数用来检测交易记录中的债券简称和万得中的债券简称匹配度
     mm = zhPattern.findall(true_name)
@@ -105,6 +143,8 @@ def collect_line(f, tr_date) :#此函数用于逐行传入原始数据并生成�
             pass 
         else :  #不是空行则进行解析提取数据
             match_num = numPattern.search(line)
+            for replace_mark in replace_lists:
+                line = line.replace(replace_mark,'')
             x = line.split()
             if match_num and len(x) >= 2: #确定该行含有有用数据（有数字且数据量>2)
                 raw_data = getdata_XYZ(x)
@@ -168,7 +208,7 @@ def getytm(s): #此程序用于将字符串形式、格式混乱的ytm统一成�
 
 
 now = datetime.now()
-yes = now - timedelta(hours = 0)
+yes = now - timedelta(hours = 24)
 yesterday = yes.strftime("%y,%m,%d") # 昨天即交易日的时间
 
 td = yes

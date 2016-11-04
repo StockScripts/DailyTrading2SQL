@@ -33,8 +33,12 @@ def  getdata_XYZ(x): #新的，参考位置的信息判断提取函数 @161103
         for u in x :
             if u in discard_lists:
                 continue
+            if zhPattern.search(u) :
+                if u.find('.') == -1 :#没点且有中文
+                    tmp[1] = u #债券名称
+                    continue
             useful_count += 1
-            tmp[useful_dict[useful_count]] = u
+            tmp[useful_dict[useful_count]] = u #!!!有问题，地方债问题没有解决
     else : #多于4个信息就按信用债提取数据
         for u in x :
             if u in discard_lists:
@@ -250,7 +254,7 @@ while 1:
         cols.append('trading_date')
         bond_DF = bond_DF[cols]
                                   
-        bond_DF.to_sql('bonddaily_plus',conn,flavor='mysql',if_exists = 'append', index = False)
+        #bond_DF.to_sql('bonddaily_plus',conn,flavor='mysql',if_exists = 'append', index = False)
         td = td - timedelta(hours = 24)
         file.close()
     except IOError :

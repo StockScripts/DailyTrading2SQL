@@ -21,7 +21,7 @@ import re
 zhPattern = re.compile(u'[\u4e00-\u9fa5]+') #用来判断一段文本中是否包含简体中文
 numPattern = re.compile('[0-9]') #判断是否包含数字
 ytm_types = ['行权','到期','永续','新发','repo']
-discard_lists = ['Depo','tkn','gvn','Tkn','Gvn','Shibor','.'] # 凡是在这个list里面的元素都是无用信息，弃之
+discard_lists = ['Depo','tkn','gvn','Tkn','Gvn','Shibor','.','shibor'] # 凡是在这个list里面的元素都是无用信息，弃之
 replace_lists = ['?'] #凡是信息包含这个list里的元素就把该元素去掉
 
 def  getdata_XYZ(x): #新的，参考位置的信息判断提取函数 @161103
@@ -38,7 +38,8 @@ def  getdata_XYZ(x): #新的，参考位置的信息判断提取函数 @161103
                     tmp[1] = u #债券名称
                     continue
             useful_count += 1
-            tmp[useful_dict[useful_count]] = u #!!!有问题，地方债问题没有解决
+            if useful_count != 4 :               
+                tmp[useful_dict[useful_count]] = u #!!!有问题，地方债问题没有解决
     else : #多于4个信息就按信用债提取数据
         for u in x :
             if u in discard_lists:
@@ -50,7 +51,7 @@ def  getdata_XYZ(x): #新的，参考位置的信息判断提取函数 @161103
             if useful_count == 1:#第一个出现的是期限
                 tmp[2] = u
             elif useful_count in [2,3]:#2,3位出现的是债券代码或者名字
-                if u.isdigit() or u.find('.S') != -1 or u.find('.s') != -1 :
+                if u.isdigit() or u.find('.S') != -1 or u.find('.s') != -1 or u.find('I') != -1 or  u.find('i') != -1:
                     tmp[0] = u #债券代码
                 else :
                     tmp[1] = u #债券名字
@@ -254,7 +255,7 @@ while 1:
         cols.append('trading_date')
         bond_DF = bond_DF[cols]
                                   
-        #bond_DF.to_sql('bonddaily_plus',conn,flavor='mysql',if_exists = 'append', index = False)
+        bond_DF.to_sql('bonddaily_plus',conn,flavor='mysql',if_exists = 'append', index = False)
         td = td - timedelta(hours = 24)
         file.close()
     except IOError :

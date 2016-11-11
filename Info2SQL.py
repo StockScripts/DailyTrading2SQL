@@ -44,8 +44,13 @@ def  getdata_XYZ(x): #新的，参考位置的信息判断提取函数 @161103
         for u in x :
             if u in discard_lists:
                 continue
-            if u in ytm_types:
-                ytm_type = u
+            name_check = 0
+            for tmp_type in ytm_types:#去排除列表里面排除一下，以防是’行权‘之类的字段
+                if u.find(tmp_type) != -1 :
+                    ytm_type = tmp_type#如果是行权之类的字段，就加到ytm_type里
+                    name_check = 1
+                    break
+            if name_check == 1:
                 continue              
             useful_count += 1
             if useful_count == 1:#第一个出现的是期限
